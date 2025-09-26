@@ -118,7 +118,9 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private dealCards() {
-        this.state.deck = this.createAndShuffleDeck();
+        const shuffledDeck = this.createAndShuffleDeck();
+        this.state.deck.splice(0); // Clear array
+        this.state.deck.push(...shuffledDeck); // Add shuffled cards
         this.state.joker_power = Math.floor(Math.random() * 68) + 1; // Roll joker power 1-68
 
         for (let playerId = 1; playerId <= 2; playerId++) {

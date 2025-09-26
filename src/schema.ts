@@ -1,4 +1,4 @@
-import { Schema, type, MapSchema } from "@colyseus/schema";
+import { Schema, type, MapSchema, ArraySchema } from "@colyseus/schema";
 
 export enum GamePhase {
     INIT = "init",
@@ -46,7 +46,7 @@ export class GameStateSchema extends Schema {
     @type({ map: PlayerSchema }) players = new MapSchema<PlayerSchema>();
     @type(BattleResultSchema) battle_result: BattleResultSchema = new BattleResultSchema();
     @type(CurrentTurnSchema) current_turn: CurrentTurnSchema = new CurrentTurnSchema();
-    @type(["number"]) deck: number[] = [];
+    @type(["number"]) deck = new ArraySchema<number>();
     @type("boolean") waiting_for_continue: boolean = false;
     @type("number") joker_power: number = 0;
 }
