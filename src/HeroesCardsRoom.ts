@@ -34,18 +34,22 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
         this.state.players.set("2", new PlayerSchema());
 
         this.onMessage("place_bet", (client, message: PlaceBetMessage) => {
+            console.log(`[MSG] place_bet from ${client.sessionId}:`, message);
             this.handlePlaceBet(client, message);
         });
 
         this.onMessage("play_card", (client, message: PlayCardMessage) => {
+            console.log(`[MSG] play_card from ${client.sessionId}:`, message);
             this.handlePlayCard(client, message);
         });
 
         this.onMessage("power_choice", (client, message: PowerChoiceMessage) => {
+            console.log(`[MSG] power_choice from ${client.sessionId}:`, message);
             this.handlePowerChoice(client, message);
         });
 
         this.onMessage("continue_game", (client, message: ContinueGameMessage) => {
+            console.log(`[MSG] continue_game from ${client.sessionId}:`, message);
             this.handleContinueGame(client, message);
         });
     }
@@ -177,10 +181,13 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
 
         player.current_bet = amount;
 
+        console.log(`[CALC] Player ${playerId} placed bet: ${amount}, credits left: ${player.credits - amount}`);
+
         // Check if both players have bet
         const player1 = this.state.players.get("1")!;
         const player2 = this.state.players.get("2")!;
         if (player1.current_bet > 0 && player2.current_bet > 0) {
+            console.log(`[PHASE] Both players have bet. Moving to INITIAL_CARD_SELECTION.`);
             this.state.phase = GamePhase.INITIAL_CARD_SELECTION;
             this.broadcastPhaseChange("Select your initial card");
         }
@@ -190,6 +197,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
 
     private handlePlayCard(client: Client, message: PlayCardMessage) {
         const playerId = this.playerIds[client.sessionId];
+        console.log(`[MSG] handlePlayCard by Player ${playerId}:`, message);
         if (!this.validateAction(playerId, "play_card")) return;
 
         const slotIndex = message.data.slot_index;
@@ -204,11 +212,14 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private handleInitialCardSelection(playerId: number, slotIndex: number) {
+        console.log(`[CALC] Player ${playerId} selects initial card from slot ${slotIndex}`);
         const player = this.state.players.get(playerId.toString())!;
         const cardId = player.hand.get(slotIndex.toString());
         if (!cardId) return;
 
         const cardPower = this.calculateCardPower(cardId);
+
+        console.log(`[CALC] Player ${playerId} selected card ${cardId} (power: ${cardPower})`);
 
         // Move card from hand to revealed
         player.hand.delete(slotIndex.toString());
@@ -234,15 +245,19 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
 
         // Check if both players have selected
         if (this.state.current_turn.own_card_id !== -1 && this.state.current_turn.rival_card_id !== -1) {
+            console.log(`[PHASE] Both initial cards selected. Processing initial battle.`);
             this.processInitialBattle();
         }
     }
 
     private processInitialBattle() {
+        console.log(`[CALC] Processing initial battle`);
         const p1Card = this.state.current_turn.own_card_id;
         const p2Card = this.state.current_turn.rival_card_id;
         const p1Power = this.calculateCardPower(p1Card);
         const p2Power = this.calculateCardPower(p2Card);
+
+        console.log(`[CALC] Initial cards: P1=${p1Card} (power: ${p1Power}), P2=${p2Card} (power: ${p2Power})`);
 
         let startingPlayer: number;
         if (p1Power > p2Power) {
@@ -253,6 +268,8 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
             // Tie - random
             startingPlayer = Math.random() < 0.5 ? 1 : 2;
         }
+
+        console.log(`[CALC] Starting player determined: Player ${startingPlayer}`);
 
         this.state.current_player = startingPlayer;
         this.state.turn_number = 2;
@@ -272,6 +289,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private handleOwnCardSelection(playerId: number, slotIndex: number) {
+        console.log(`[CALC] Player ${playerId} selects own card from slot ${slotIndex}`);
         const player = this.state.players.get(playerId.toString())!;
         const cardId = player.hand.get(slotIndex.toString());
         if (!cardId) return;
@@ -301,6 +319,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
 
     private handleRivalCardSelection(playerId: number, slotIndex: number) {
         const rivalId = playerId === 1 ? 2 : 1;
+        console.log(`[CALC] Player ${playerId} selects rival's card from slot ${slotIndex}`);
         const rivalPlayer = this.state.players.get(rivalId.toString())!;
         const cardId = rivalPlayer.hand.get(slotIndex.toString());
         if (!cardId) return;
@@ -330,14 +349,18 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     private processBattle() {
         const currentPlayer = this.state.current_player;
         const rivalPlayer = currentPlayer === 1 ? 2 : 1;
+        console.log(`[CALC] Processing battle: Player ${currentPlayer} vs Player ${rivalPlayer}`);
 
         const ownCard = this.state.current_turn.own_card_id;
         const rivalCard = this.state.current_turn.rival_card_id;
         const ownPower = this.calculateCardPower(ownCard);
         const rivalPower = this.calculateCardPower(rivalCard);
 
+        console.log(`[CALC] Own card: ${ownCard} (power: ${ownPower}), Rival card: ${rivalCard} (power: ${rivalPower})`);
+
         // Handle Dr. Manhattan reveal
         if (ownCard === SPECIAL_CARDS.DR_MANHATTAN) {
+            console.log(`[SPECIAL] Dr. Manhattan played by Player ${currentPlayer}. Revealing rival's hand.`);
             const rivalHand: { [slot: number]: number } = {};
             const rivalPlayerSchema = this.state.players.get(rivalPlayer.toString())!;
             rivalPlayerSchema.hand.forEach((cardId, slot) => {
@@ -380,9 +403,11 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
         });
 
         if (winner === currentPlayer) {
+            console.log(`[PHASE] Player ${currentPlayer} won battle. Moving to POWER_CHOICE.`);
             this.state.phase = GamePhase.POWER_CHOICE;
             this.broadcastPhaseChange(`Player ${currentPlayer} choose power effect`, powerDifference);
         } else {
+            console.log(`[PHASE] Player ${rivalPlayer} won battle or tie. Next turn.`);
             this.nextTurn();
         }
 
@@ -391,6 +416,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
 
     private handlePowerChoice(client: Client, message: PowerChoiceMessage) {
         const playerId = this.playerIds[client.sessionId];
+        console.log(`[MSG] handlePowerChoice by Player ${playerId}:`, message);
         if (!this.validateAction(playerId, "power_choice")) return;
 
         const choice = message.data.choice;
@@ -398,8 +424,10 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
         const player = this.state.players.get(playerId.toString())!;
 
         if (choice === "add") {
+            console.log(`[CALC] Player ${playerId} adds ${powerDifference} points (now: ${player.points + powerDifference})`);
             player.points += powerDifference;
         } else {
+            console.log(`[CALC] Player ${playerId} subtracts ${powerDifference} points (now: ${player.points - powerDifference})`);
             player.points -= powerDifference;
         }
 
@@ -407,9 +435,11 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private nextTurn() {
+        console.log(`[PHASE] Advancing to next turn`);
         this.resetCurrentTurn();
 
         if (this.state.turn_number >= 10) {
+            console.log(`[PHASE] End of round reached`);
             this.endRound();
             return;
         }
@@ -436,6 +466,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private endRound() {
+        console.log(`[PHASE] Ending round ${this.state.round_number}`);
         const player1 = this.state.players.get("1")!;
         const player2 = this.state.players.get("2")!;
         const p1Points = player1.points;
@@ -485,10 +516,12 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
         for (let playerId = 1; playerId <= 2; playerId++) {
             const player = this.state.players.get(playerId.toString())!;
             if (player.credits >= 1000) {
+                console.log(`[GAME OVER] Player ${playerId} reached 1000 credits`);
                 this.gameOver(playerId, "real_winner");
                 return;
             }
             if (player.credits <= 0) {
+                console.log(`[GAME OVER] Player ${playerId} busted`);
                 const winner = playerId === 1 ? 2 : 1;
                 this.gameOver(winner, "busted");
                 return;
@@ -499,6 +532,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private gameOver(winner: number, result: "real_winner" | "busted") {
+        console.log(`[GAME OVER] Winner: Player ${winner}, Result: ${result}`);
         this.state.phase = GamePhase.GAME_OVER;
         this.state.waiting_for_continue = true;
 
@@ -516,12 +550,14 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private handleContinueGame(client: Client, message: ContinueGameMessage) {
+        console.log(`[MSG] handleContinueGame from ${client.sessionId}:`, message);
         if (!this.state.waiting_for_continue) return;
 
         this.initializeGame();
     }
 
     private startNextRound() {
+        console.log(`[PHASE] Starting next round: ${this.state.round_number + 1}`);
         this.state.round_number++;
         this.state.turn_number = 1;
         this.state.phase = GamePhase.BETTING;
@@ -551,6 +587,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private broadcastPhaseChange(message: string, powerDifference?: number) {
+        console.log(`[PHASE] Broadcast phase change: ${message}, Phase: ${this.state.phase}, PowerDiff: ${powerDifference}`);
         this.broadcast("phase_change", {
             phase: this.state.phase as GamePhase,
             current_player: this.state.current_player,
@@ -562,6 +599,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private syncGameState() {
+        console.log(`[SYNC] Syncing game state to all clients`);
         this.clients.forEach((client) => {
             const playerId = this.playerIds[client.sessionId];
             const opponentId = playerId === 1 ? 2 : 1;
@@ -606,6 +644,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     }
 
     private sendToPlayer(playerId: number, action: string, data: any) {
+        console.log(`[SEND] Sending ${action} to Player ${playerId}:`, data);
         this.clients.forEach((client) => {
             if (this.playerIds[client.sessionId] === playerId) {
                 client.send(action, data);
