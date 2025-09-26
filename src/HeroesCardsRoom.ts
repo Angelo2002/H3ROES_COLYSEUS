@@ -25,7 +25,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     private playerIds: { [sessionId: string]: number } = {};
 
     onCreate(options: any) {
-        console.log("HeroesCardsRoomV2 created!");
+        console.log("HeroesCardsRoomV3 created!");
         console.log("Serializer ID:", (this as any).serializerId);
         this.setState(new GameStateSchema());
 
@@ -360,6 +360,8 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
 
         const powerDifference = Math.abs(ownPower - rivalPower);
 
+        // Create new battle result
+        this.state.battle_result = new BattleResultSchema();
         this.state.battle_result.winner = winner;
         this.state.battle_result.power_difference = powerDifference;
         this.state.battle_result.p1_power = currentPlayer === 1 ? ownPower : rivalPower;
@@ -392,7 +394,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
         if (!this.validateAction(playerId, "power_choice")) return;
 
         const choice = message.data.choice;
-        const powerDifference = this.state.battle_result.power_difference;
+        const powerDifference = this.state.battle_result?.power_difference || 0;
         const player = this.state.players.get(playerId.toString())!;
 
         if (choice === "add") {

@@ -44,7 +44,7 @@ export class GameStateSchema extends Schema {
     @type("number") round_number: number = 1;
     @type("number") turn_number: number = 1;
     @type({ map: PlayerSchema }) players = new MapSchema<PlayerSchema>();
-    @type(BattleResultSchema) battle_result: BattleResultSchema = new BattleResultSchema();
+    @type(BattleResultSchema) battle_result?: BattleResultSchema;
     @type(CurrentTurnSchema) current_turn: CurrentTurnSchema = new CurrentTurnSchema();
     @type(["number"]) deck = new ArraySchema<number>();
     @type("boolean") waiting_for_continue: boolean = false;
