@@ -169,8 +169,8 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
 
     private handlePlaceBet(client: Client, message: PlaceBetMessage) {
         const playerId = this.playerIds[client.sessionId];
+        console.log("Betting: ",message);
         if (!this.validateAction(playerId, "place_bet")) return;
-
         const amount = message.data.amount;
         const player = this.state.players.get(playerId.toString())!;
         if (amount < 0 || amount > player.credits) return;
