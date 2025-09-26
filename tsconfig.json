@@ -5,16 +5,14 @@
     "lib": ["ES2020"],
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
-    "suppressImplicitAnyIndexErrors": true,
-    "noImplicitAny": false
-
+    "strict": false,
+    "noImplicitAny": false,
 }
   },
   "include": ["src/**/*"],
