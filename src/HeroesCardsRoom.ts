@@ -25,7 +25,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
     private playerIds: { [sessionId: string]: number } = {};
 
     onCreate(options: any) {
-        console.log("HeroesCardsRoom created!");
+        console.log("HeroesCardsRoomV2 created!");
 
         this.setState(new GameStateSchema());
 
