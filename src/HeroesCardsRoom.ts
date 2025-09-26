@@ -26,7 +26,7 @@ export class HeroesCardsRoom extends Room<GameStateSchema> {
 
     onCreate(options: any) {
         console.log("HeroesCardsRoomV2 created!");
-
+        console.log("Serializer ID:", (this as any).serializerId);
         this.setState(new GameStateSchema());
 
         // Initialize players
