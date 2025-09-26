@@ -1,3 +1,5 @@
+import { Schema, type, MapSchema } from "@colyseus/schema";
+
 export enum GamePhase {
     INIT = "init",
     BETTING = "betting",
@@ -10,46 +12,43 @@ export enum GamePhase {
     GAME_OVER = "game_over"
 }
 
-export interface PlayerState {
-    credits: number;
-    points: number;
-    current_bet: number;
-    hand: { [slot: number]: number };
-    revealed_cards: { [slot: number]: number };
+export class PlayerSchema extends Schema {
+    @type("number") credits: number = 100;
+    @type("number") points: number = 0;
+    @type("number") current_bet: number = 0;
+    @type({ map: "number" }) hand = new MapSchema<number>();
+    @type({ map: "number" }) revealed_cards = new MapSchema<number>();
 }
 
-export interface BattleResult {
-    winner: number;
-    power_difference: number;
-    p1_power: number;
-    p2_power: number;
-    p1_card: number;
-    p2_card: number;
+export class BattleResultSchema extends Schema {
+    @type("number") winner: number = 0;
+    @type("number") power_difference: number = 0;
+    @type("number") p1_power: number = 0;
+    @type("number") p2_power: number = 0;
+    @type("number") p1_card: number = 0;
+    @type("number") p2_card: number = 0;
 }
 
-export interface CurrentTurn {
-    own_card_selected: boolean;
-    rival_card_selected: boolean;
-    own_slot: number | null;
-    rival_slot: number | null;
-    own_card_id: number | null;
-    rival_card_id: number | null;
+export class CurrentTurnSchema extends Schema {
+    @type("boolean") own_card_selected: boolean = false;
+    @type("boolean") rival_card_selected: boolean = false;
+    @type("number") own_slot: number = -1;
+    @type("number") rival_slot: number = -1;
+    @type("number") own_card_id: number = -1;
+    @type("number") rival_card_id: number = -1;
 }
 
-export interface GameState {
-    phase: GamePhase;
-    current_player: number;
-    round_number: number;
-    turn_number: number;
-    players: {
-        [1]: PlayerState;
-        [2]: PlayerState;
-    };
-    battle_result: BattleResult | null;
-    current_turn: CurrentTurn;
-    deck: number[];
-    waiting_for_continue: boolean;
-    joker_power: number; // Global joker value, resets each round
+export class GameStateSchema extends Schema {
+    @type("string") phase: string = GamePhase.INIT;
+    @type("number") current_player: number = 1;
+    @type("number") round_number: number = 1;
+    @type("number") turn_number: number = 1;
+    @type({ map: PlayerSchema }) players = new MapSchema<PlayerSchema>();
+    @type(BattleResultSchema) battle_result: BattleResultSchema = new BattleResultSchema();
+    @type(CurrentTurnSchema) current_turn: CurrentTurnSchema = new CurrentTurnSchema();
+    @type(["number"]) deck: number[] = [];
+    @type("boolean") waiting_for_continue: boolean = false;
+    @type("number") joker_power: number = 0;
 }
 
 export const SPECIAL_CARDS = {
@@ -57,7 +56,7 @@ export const SPECIAL_CARDS = {
     DR_MANHATTAN: 67
 };
 
-// Message interfaces
+// Message interfaces (these don't need to be Schema classes)
 export interface PlaceBetMessage {
     action: "place_bet";
     data: {
@@ -83,7 +82,7 @@ export interface ContinueGameMessage {
     action: "continue_game";
 }
 
-// Server broadcast message interfaces
+// Server broadcast message interfaces (these don't need to be Schema classes)
 export interface SyncGameStateMessage {
     player_id: number;
     phase: GamePhase;
@@ -92,7 +91,7 @@ export interface SyncGameStateMessage {
     turn_number: number;
     own_revealed_cards: { [slot: number]: number };
     opponent_revealed_cards: { [slot: number]: number };
-    joker_power: number; // Send global joker power to clients
+    joker_power: number;
     credits: number;
     points: number;
     current_bet: number;
